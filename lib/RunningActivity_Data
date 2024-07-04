@@ -1,0 +1,41 @@
+import 'dart:convert';
+
+class RunningActivity {
+  final DateTime date;
+  final double distance;
+  final double speed;
+  final int duration;
+  final double calories;
+
+  RunningActivity({
+    required this.date,
+    required this.distance,
+    required this.speed,
+    required this.duration,
+    required this.calories,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'date': date.toIso8601String(),
+      'distance': distance,
+      'speed': speed,
+      'duration': duration,
+      'calories': calories,
+    };
+  }
+
+  factory RunningActivity.fromMap(Map<String, dynamic> map) {
+    return RunningActivity(
+      date: DateTime.parse(map['date']),
+      distance: map['distance'],
+      speed: map['speed'],
+      duration: map['duration'],
+      calories: map['calories'],
+    );
+  }
+
+  String toJson() => json.encode(toMap());
+
+  factory RunningActivity.fromJson(String source) => RunningActivity.fromMap(json.decode(source));
+}
