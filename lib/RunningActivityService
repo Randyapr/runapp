@@ -1,0 +1,35 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:runapp/data/running.dart';
+
+class RunningActivityService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Future<void> saveActivity(RunningActivity activity) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('activities')
+          .add(activity.toMap());
+    }
+  }
+
+  Future<List<RunningActivity>> getActivitiesForUser() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('activities')
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        return RunningActivity.fromMap(doc.data() as Map<String, dynamic>);
+      }).toList();
+    }
+    return [];
+  }
+}
