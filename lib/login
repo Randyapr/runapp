@@ -1,0 +1,122 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'home.dart';
+import 'register.dart';
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _emailOrUsernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  bool _obscureText = true; // State for password visibility
+
+  Future<void> _login() async {
+    final emailOrUsername = _emailOrUsernameController.text;
+    final password = _passwordController.text;
+
+    try {
+      UserCredential userCredential;
+      
+      if (emailOrUsername.contains('@')) {
+        // Login menggunakan email
+        userCredential = await _auth.signInWithEmailAndPassword(
+          email: emailOrUsername,
+          password: password,
+        );
+      } else {
+        // Login menggunakan username
+        final querySnapshot = await _firestore
+            .collection('users')
+            .where('username', isEqualTo: emailOrUsername)
+            .get();
+
+        if (querySnapshot.docs.isEmpty) {
+          throw FirebaseAuthException(
+              code: 'user-not-found', message: 'User not found');
+        }
+
+        final userId = querySnapshot.docs.first.id;
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        final userEmail = userDoc['email'];
+
+        userCredential = await _auth.signInWithEmailAndPassword(
+          email: userEmail,
+          password: password,
+        );
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login successful')),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid email/username or password')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Login'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _emailOrUsernameController,
+              decoration: InputDecoration(labelText: 'Email or Username'),
+            ),
+            TextField(
+              controller: _passwordController,
+              obscureText: _obscureText,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureText ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureText = !_obscureText;
+                    });
+                  },
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _login,
+              child: Text('Login'),
+            ),
+            SizedBox(height: 20),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RegisterPage()),
+                );
+              },
+              child: Text("Don't have an account? Register"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
